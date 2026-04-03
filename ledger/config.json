@@ -1,0 +1,26 @@
+{
+  "risk_profile": "moderate",
+  "monthly_budget": 100,
+  "mode": "paper",
+  "auto_mode": true,
+  "rotation_threshold": 1,
+  "rotation_safety": true,
+  "crash_sell": true,
+  "crash_threshold": -0.05,
+  "ma200_filter": true,
+  "scan_interval_hours": 2,
+  "scan_throttle_ms": 500,
+  "wash_sale_cooldown_days": 31,
+  "crypto_symbols": [
+    "BTC/CAD",
+    "ETH/CAD"
+  ],
+  "crypto_profit_take": 0.2,
+  "crypto_stop_loss": -0.15,
+  "crypto_use_atr_stop": true,
+  "crypto_atr_multiplier": 2.0,
+  "crypto_principal_protect": true,
+  "crypto_reinvest_pct": 0.7,
+  "cross_transfer_pct": 0.3,
+  "savings_goal": 500
+}

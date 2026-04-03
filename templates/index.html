@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>WealthPilot v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080b0f;--surface:#0d1117;--card:#111820;--border:#1c2635;--border2:#243040;
+  --text:#e2eaf5;--sub:#5a7a9a;--muted:#2a3f55;
+  --green:#00e676;--blue:#40c4ff;--amber:#ffab40;--red:#ff5252;--purple:#ce93d8;--orange:#ff9800;
+  --font-h:'Syne',sans-serif;--font-m:'JetBrains Mono',monospace;--r:8px;--r2:14px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-m);font-size:13px;line-height:1.5}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+.shell{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+
+/* Sidebar */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;padding:0 0 20px}
+.brand{padding:20px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.brand-logo{width:36px;height:36px;background:linear-gradient(135deg,#00e676,#00b0ff);border-radius:9px;display:grid;place-items:center;font-size:17px;flex-shrink:0;box-shadow:0 0 18px rgba(0,230,118,.22)}
+.brand-name{font-family:var(--font-h);font-size:16px;font-weight:800;letter-spacing:-.5px}
+.brand-tag{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.1em;margin-top:1px}
+
+/* Side tabs */
+.side-tabs{display:flex;margin:12px 14px 0;gap:4px}
+.side-tab{flex:1;padding:7px 4px;text-align:center;font-size:11px;border-radius:var(--r);cursor:pointer;border:1px solid var(--border);color:var(--sub);transition:all .15s}
+.side-tab.active.cons{background:rgba(0,230,118,.1);border-color:rgba(0,230,118,.3);color:var(--green)}
+.side-tab.active.crypto{background:rgba(255,152,0,.1);border-color:rgba(255,152,0,.3);color:var(--orange)}
+.side-tab.active.save{background:rgba(64,196,255,.1);border-color:rgba(64,196,255,.3);color:var(--blue)}
+
+.nav{padding:10px 10px 0;display:flex;flex-direction:column;gap:2px}
+.nav-section{font-size:9px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;padding:7px 8px 3px}
+.nav a{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:var(--r);color:var(--sub);text-decoration:none;font-size:11.5px;transition:all .15s}
+.nav a:hover{background:#141e2a;color:var(--text)}
+.nav a.active{background:#0e2a1e;color:var(--green)}
+
+.sidebar-summary{margin-top:auto;padding:12px 14px;display:flex;flex-direction:column;gap:7px}
+.sb-block{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px}
+.sb-block .lbl{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.1em}
+.sb-block .val{font-family:var(--font-h);font-size:17px;font-weight:700;line-height:1;margin-top:2px}
+.sb-block .val.g{color:var(--green)}.sb-block .val.b{color:var(--blue)}.sb-block .val.o{color:var(--orange)}
+
+/* Main */
+.main{display:flex;flex-direction:column;gap:20px;padding:24px 28px;max-width:1080px;width:100%}
+.page-title{font-family:var(--font-h);font-size:21px;font-weight:700;letter-spacing:-.5px}
+.page-sub{font-size:11px;color:var(--sub);margin-top:2px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.topbar-right{display:flex;gap:7px;align-items:center;flex-shrink:0}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:var(--r);font-family:var(--font-m);font-size:11.5px;cursor:pointer;border:1px solid transparent;transition:all .15s;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn-green{background:var(--green);color:#000;font-weight:600;border-color:var(--green)}.btn-green:hover{box-shadow:0 0 18px rgba(0,230,118,.3)}
+.btn-orange{background:var(--orange);color:#000;font-weight:600}.btn-orange:hover{box-shadow:0 0 18px rgba(255,152,0,.3)}
+.btn-blue{background:transparent;border-color:var(--blue);color:var(--blue)}.btn-blue:hover{background:rgba(64,196,255,.08)}
+.btn-ghost{background:transparent;border-color:var(--border2);color:var(--sub)}.btn-ghost:hover{border-color:var(--text);color:var(--text)}
+.btn-red{background:transparent;border-color:var(--red);color:var(--red)}.btn-red:hover{background:rgba(255,82,82,.08)}
+.btn-amber{background:transparent;border-color:var(--amber);color:var(--amber)}.btn-amber:hover{background:rgba(255,171,64,.08)}
+.btn-sm{padding:5px 9px;font-size:10.5px}
+
+/* Sentiment */
+.sentiment{border-radius:var(--r2);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:14px;transition:all .3s}
+.sentiment.hold{background:rgba(90,122,154,.08);border:1px solid var(--border2)}
+.sentiment.buy_dip{background:rgba(0,230,118,.08);border:1px solid rgba(0,230,118,.3)}
+.sentiment.caution{background:rgba(255,171,64,.08);border:1px solid rgba(255,171,64,.3)}
+.sentiment.crash{background:rgba(255,82,82,.1);border:1px solid rgba(255,82,82,.4)}
+.sent-label{font-family:var(--font-h);font-size:13px;font-weight:700}
+.sent-detail{font-size:11px;color:var(--sub);margin-top:2px}
+.sentiment.buy_dip .sent-label{color:var(--green)}.sentiment.caution .sent-label{color:var(--amber)}.sentiment.crash .sent-label{color:var(--red)}
+
+/* Metrics */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.metric{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:16px 18px;position:relative;overflow:hidden}
+.metric::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ac,var(--border))}
+.metric-label{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.1em}
+.metric-value{font-family:var(--font-h);font-size:22px;font-weight:700;margin-top:5px;line-height:1}
+.metric-meta{font-size:10px;color:var(--sub);margin-top:4px}
+.metric-value.g{color:var(--green)}.metric-value.b{color:var(--blue)}.metric-value.r{color:var(--red)}.metric-value.o{color:var(--orange)}
+
+/* Flow diagram */
+.flow-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:20px;display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap}
+.flow-box{padding:14px 18px;border-radius:var(--r);text-align:center;min-width:130px}
+.flow-box.crypto{background:rgba(255,152,0,.1);border:2px solid rgba(255,152,0,.4)}
+.flow-box.cons{background:rgba(0,230,118,.1);border:2px solid rgba(0,230,118,.4)}
+.flow-box.save{background:rgba(64,196,255,.1);border:2px solid rgba(64,196,255,.4)}
+.flow-title{font-family:var(--font-h);font-size:13px;font-weight:700}
+.flow-val{font-size:16px;font-weight:700;margin-top:4px}
+.flow-sub{font-size:10px;color:var(--sub);margin-top:2px}
+.flow-arrow{display:flex;flex-direction:column;align-items:center;padding:0 12px;color:var(--sub);font-size:10px;gap:3px}
+.flow-arrow .arr{font-size:20px;line-height:1}
+.flow-arrow.one-way{color:var(--green)}
+.flow-arrow.blocked{color:var(--red)}
+.flow-note{font-size:9px;text-align:center;max-width:70px;line-height:1.3}
+
+/* Two panel split */
+.two-panel{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.panel-title{font-family:var(--font-h);font-size:14px;font-weight:700;padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.panel-title .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-green{background:var(--green);box-shadow:0 0 8px var(--green)}
+.dot-orange{background:var(--orange);box-shadow:0 0 8px var(--orange)}
+
+/* Card / Table */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2)}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;padding:8px 14px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.2)}
+td{padding:10px 14px;border-bottom:1px solid rgba(28,38,53,.4);font-size:11.5px}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+.pos{color:var(--green)}.neg{color:var(--red)}.neutral{color:var(--sub)}
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:9.5px;font-weight:600;letter-spacing:.04em}
+.badge-buy{background:rgba(0,230,118,.1);color:var(--green);border:1px solid rgba(0,230,118,.2)}
+.badge-sell{background:rgba(255,82,82,.1);color:var(--red);border:1px solid rgba(255,82,82,.2)}
+.badge-profit{background:rgba(0,230,118,.1);color:var(--green);border:1px solid rgba(0,230,118,.2)}
+.badge-stop{background:rgba(255,82,82,.1);color:var(--red);border:1px solid rgba(255,82,82,.2)}
+.badge-rotation{background:rgba(206,147,216,.1);color:var(--purple);border:1px solid rgba(206,147,216,.2)}
+.badge-auto{background:rgba(90,122,154,.1);color:var(--sub);border:1px solid var(--border2)}
+.badge-manual{background:rgba(206,147,216,.1);color:var(--purple);border:1px solid rgba(206,147,216,.2)}
+
+/* Input */
+.input{background:var(--bg);border:1px solid var(--border2);border-radius:var(--r);padding:8px 11px;color:var(--text);font-family:var(--font-m);font-size:11.5px;width:100%;transition:border-color .15s}
+.input:focus{outline:none;border-color:var(--green)}
+.input-label{font-size:9.5px;color:var(--sub);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;display:block}
+.input-group{display:flex;flex-direction:column;gap:3px}
+.input-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+/* Section head */
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sec-title{font-family:var(--font-h);font-size:14px;font-weight:700}
+.sec-sub{font-size:10px;color:var(--sub)}
+
+/* Opportunities */
+.opp-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(28,38,53,.4)}
+.opp-row:last-child{border-bottom:none}
+.opp-sym{font-family:var(--font-h);font-size:13px;font-weight:700}
+.opp-score{display:flex;gap:12px;align-items:center}
+.yield-bar{height:4px;background:var(--border);border-radius:2px;width:60px;overflow:hidden}
+.yield-fill{height:100%;background:var(--green);border-radius:2px}
+.score-pill{font-size:10px;padding:2px 7px;border-radius:10px;background:rgba(0,230,118,.1);color:var(--green);border:1px solid rgba(0,230,118,.2)}
+
+/* Modal */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;display:none;place-items:center}
+.modal-backdrop.open{display:grid}
+.modal{background:var(--card);border:1px solid var(--border2);border-radius:var(--r2);padding:24px;width:100%;max-width:400px;display:flex;flex-direction:column;gap:14px}
+.modal-title{font-family:var(--font-h);font-size:16px;font-weight:700}
+.modal-warn{background:rgba(255,171,64,.08);border:1px solid rgba(255,171,64,.25);border-radius:var(--r);padding:10px 12px;font-size:10.5px;color:var(--amber);line-height:1.6}
+
+/* Toast / spinner */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--card);border:1px solid var(--border2);border-radius:var(--r);padding:11px 16px;font-size:11.5px;max-width:300px;box-shadow:0 8px 28px #0008;transform:translateY(80px);opacity:0;transition:all .25s cubic-bezier(.34,1.56,.64,1);z-index:999}
+.toast.show{transform:translateY(0);opacity:1}.toast.ok{border-color:rgba(0,230,118,.4);color:var(--green)}.toast.err{border-color:rgba(255,82,82,.4);color:var(--red)}
+.spinner{display:inline-block;width:9px;height:9px;border:2px solid var(--border2);border-top-color:var(--green);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:4px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.pulse{animation:pulse 2s infinite}
+.alert-ct{display:none;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--red);color:#fff;font-size:8.5px;font-weight:700;margin-left:3px}
+.alert-ct.show{display:inline-flex}
+@media(max-width:850px){.shell{grid-template-columns:1fr}.sidebar{display:none}.main{padding:14px}.metrics{grid-template-columns:1fr 1fr}.two-panel{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-logo">💹</div>
+    <div><div class="brand-name">WealthPilot</div><div class="brand-tag">v3 · Dual Engine</div></div>
+  </div>
+
+  <div class="side-tabs">
+    <div class="side-tab active cons" onclick="showSection('overview')">📈 Cons.</div>
+    <div class="side-tab crypto" onclick="showSection('crypto')">₿ Crypto</div>
+    <div class="side-tab save" onclick="showSection('savings')">🔒 Save</div>
+  </div>
+
+  <nav class="nav">
+    <div class="nav-section">Workspace</div>
+    <a href="#" class="active" onclick="showSection('overview')">◈ Overview</a>
+    <a href="#" onclick="showSection('opportunities')">🎯 Opportunities</a>
+    <a href="#" onclick="showSection('flow')">⇄ Money Flow</a>
+    <a href="#" onclick="showSection('crypto')">₿ Crypto (NDAX)</a>
+    <a href="#" onclick="showSection('trade')">⇅ Manual Trade</a>
+    <a href="#" onclick="showSection('savings')">🔒 Savings</a>
+    <a href="#" onclick="showSection('email')">✉ Reports</a>
+    <a href="#" onclick="showSection('settings')">⚙ Settings</a>
+    <a href="#" onclick="showSection('golive')">🚀 Go Live</a>
+  </nav>
+
+  <div class="sidebar-summary">
+    <div class="sb-block"><div class="lbl">Total wealth</div><div class="val g" id="sb-total">—</div></div>
+    <div class="sb-block"><div class="lbl">Conservative</div><div class="val g" id="sb-cons">—</div></div>
+    <div class="sb-block"><div class="lbl">Crypto (NDAX)</div><div class="val o" id="sb-crypto">—</div></div>
+    <div class="sb-block"><div class="lbl">Savings vault</div><div class="val b" id="sb-savings">—</div></div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- OVERVIEW -->
+<div id="section-overview" style="display:flex;flex-direction:column;gap:20px">
+  <div class="topbar">
+    <div><div class="page-title">Portfolio Overview</div><div class="page-sub" id="last-sync">Syncing…</div></div>
+    <div class="topbar-right">
+      <button class="btn btn-ghost btn-sm" onclick="runScan()">🔄 Scan Now</button>
+      <button class="btn btn-ghost btn-sm" onclick="loadDashboard()">↻ Refresh</button>
+    </div>
+  </div>
+
+  <div class="sentiment hold" id="sent-banner">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:22px" id="sent-icon">📊</div>
+      <div><div class="sent-label" id="sent-label">Loading…</div><div class="sent-detail" id="sent-detail">Fetching market data</div></div>
+    </div>
+    <div style="text-align:right;flex-shrink:0">
+      <div style="font-size:9px;color:var(--sub)">SPY Today</div>
+      <div style="font-family:var(--font-h);font-size:16px;font-weight:700" id="sent-spy">—</div>
+      <div style="font-size:9px;color:var(--sub)">RSI: <span id="sent-rsi">—</span></div>
+    </div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric" style="--ac:var(--green)"><div class="metric-label">Grand Total</div><div class="metric-value g" id="m-total">—</div><div class="metric-meta">all sides combined</div></div>
+    <div class="metric" style="--ac:var(--green)"><div class="metric-label">Conservative G/L</div><div class="metric-value" id="m-cons-gl">—</div><div class="metric-meta" id="m-cons-gl-pct">—</div></div>
+    <div class="metric" style="--ac:var(--orange)"><div class="metric-label">Crypto G/L</div><div class="metric-value" id="m-crypto-gl">—</div><div class="metric-meta" id="m-crypto-gl-pct">—</div></div>
+    <div class="metric" style="--ac:var(--blue)"><div class="metric-label">Savings Vault</div><div class="metric-value b" id="m-savings">—</div><div class="metric-meta">protected 30%</div></div>
+  </div>
+
+  <!-- Deploy -->
+  <div style="background:linear-gradient(135deg,#0a1f14,#080f1a);border:1px solid rgba(0,230,118,.2);border-radius:var(--r2);padding:18px 22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+    <div>
+      <div style="font-family:var(--font-h);font-size:15px;font-weight:700;color:var(--green)">Deploy Capital → Best Dividend ETF</div>
+      <div style="font-size:11px;color:var(--sub);margin-top:3px">Auto-selects top-ranked opportunity. Gain-only rotation. 70/30 split on profits.</div>
+      <div style="display:flex;gap:18px;margin-top:12px">
+        <div><div style="font-family:var(--font-h);font-size:18px;font-weight:700;color:var(--green)" id="deploy-invest">$70</div><div style="font-size:9px;color:var(--sub);text-transform:uppercase">→ Best ETF</div></div>
+        <div><div style="font-family:var(--font-h);font-size:18px;font-weight:700;color:var(--blue)" id="deploy-save">$30</div><div style="font-size:9px;color:var(--sub);text-transform:uppercase">→ Vault</div></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:7px;align-items:flex-end">
+      <div style="display:flex;gap:7px;align-items:flex-end">
+        <div class="input-group" style="width:100px">
+          <label class="input-label">Amount ($)</label>
+          <input class="input" id="deploy-amount" type="number" min="1" step="10" placeholder="100" oninput="updateDeploySplit()"/>
+        </div>
+        <button class="btn btn-green" id="deploy-btn" onclick="runDeploy()">🚀 Deploy</button>
+      </div>
+      <div style="font-size:9.5px;color:var(--sub)" id="deploy-mode-lbl">Paper trading</div>
+    </div>
+  </div>
+
+  <!-- Conservative positions -->
+  <div class="two-panel">
+    <div>
+      <div class="sec-head"><div><div class="sec-title">Conservative Positions</div><div class="sec-sub">Alpaca · dividend ETFs</div></div></div>
+      <div class="card table-wrap"><table>
+        <thead><tr><th>Symbol</th><th>Value</th><th>Gain/Loss</th><th>Cost</th></tr></thead>
+        <tbody id="cons-holdings"><tr><td colspan="4" style="text-align:center;padding:24px;color:var(--sub)">No positions yet</td></tr></tbody>
+      </table></div>
+    </div>
+    <div>
+      <div class="sec-head"><div><div class="sec-title">Recent Rotations</div><div class="sec-sub">Sell gain → 70% reinvest / 30% save</div></div></div>
+      <div class="card table-wrap"><table>
+        <thead><tr><th>From</th><th>To</th><th>Gain</th><th>Saved</th></tr></thead>
+        <tbody id="rotation-log"><tr><td colspan="4" style="text-align:center;padding:24px;color:var(--sub)">No rotations yet</td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<!-- OPPORTUNITIES -->
+<div id="section-opportunities" style="display:none;flex-direction:column;gap:20px">
+  <div class="topbar">
+    <div><div class="page-title">Dividend Opportunities</div><div class="page-sub">Scored by yield × safety — app auto-rotates when threshold met</div></div>
+    <div class="topbar-right"><button class="btn btn-green btn-sm" onclick="runScan()">🔄 Scan & Rotate</button></div>
+  </div>
+  <div class="card" style="padding:18px">
+    <div style="font-size:11px;color:var(--sub);margin-bottom:14px;line-height:1.6">
+      The scanner scores every ETF on yield (50%) + safety (50%). Safety factors in: dividend growth streak, payout ratio, sector defensiveness, and RSI signal.
+      When a better option exceeds your threshold by <strong style="color:var(--text)" id="threshold-display">1.0%</strong> AND improves safety, the app sells your current holding, takes the gain, splits 70/30, and buys the winner automatically.
+    </div>
+    <div id="opp-list" style="display:flex;flex-direction:column;gap:4px"></div>
+  </div>
+</div>
+
+<!-- FLOW -->
+<div id="section-flow" style="display:none;flex-direction:column;gap:20px">
+  <div class="topbar"><div><div class="page-title">Money Flow</div><div class="page-sub">One-way: crypto gains fund conservative. Conservative never funds crypto automatically.</div></div></div>
+
+  <!-- Flow diagram -->
+  <div class="flow-card">
+    <div class="flow-box crypto">
+      <div class="flow-title" style="color:var(--orange)">₿ Crypto</div>
+      <div class="flow-val" style="color:var(--orange)" id="flow-crypto">—</div>
+      <div class="flow-sub">NDAX positions</div>
+    </div>
+    <div class="flow-arrow one-way">
+      <div class="arr">→</div>
+      <div class="flow-note" style="color:var(--green)">30% of gain<br/>auto-transfers</div>
+    </div>
+    <div class="flow-box cons">
+      <div class="flow-title" style="color:var(--green)">📈 Conservative</div>
+      <div class="flow-val" style="color:var(--green)" id="flow-cons">—</div>
+      <div class="flow-sub">Alpaca dividends</div>
+    </div>
+    <div class="flow-arrow one-way">
+      <div class="arr">→</div>
+      <div class="flow-note" style="color:var(--blue)">30% of all<br/>gains / deploys</div>
+    </div>
+    <div class="flow-box save">
+      <div class="flow-title" style="color:var(--blue)">🔒 Savings</div>
+      <div class="flow-val" style="color:var(--blue)" id="flow-savings">—</div>
+      <div class="flow-sub">Protected vault</div>
+    </div>
+    <div style="width:100%;margin-top:14px;padding:10px 14px;background:rgba(255,82,82,.05);border:1px solid rgba(255,82,82,.2);border-radius:var(--r);font-size:10px;color:var(--red);text-align:center">
+      🚫 Conservative → Crypto: <strong>manual only</strong>. App will email a recommendation if conditions are right but will never move this money automatically.
+    </div>
+  </div>
+
+  <!-- Cross transfer log -->
+  <div class="sec-head"><div class="sec-title">Cross-Side Transfers</div><div class="sec-sub">Crypto profits → conservative savings</div></div>
+  <div class="card table-wrap"><table>
+    <thead><tr><th>Date</th><th>From</th><th>To</th><th>Amount</th><th>Source Gain</th><th>Note</th></tr></thead>
+    <tbody id="cross-transfers"><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--sub)">No cross transfers yet — crypto gains will appear here</td></tr></tbody>
+  </table></div>
+</div>
+
+<!-- CRYPTO -->
+<div id="section-crypto" style="display:none;flex-direction:column;gap:20px">
+  <div class="topbar">
+    <div><div class="page-title">Crypto Engine</div><div class="page-sub">NDAX via ccxt · auto profit-take & stop-loss</div></div>
+    <div class="topbar-right">
+      <button class="btn btn-ghost btn-sm" id="crypto-check-btn" onclick="cryptoCheck()">Check Exits</button>
+      <div style="display:flex;align-items:center;gap:6px;font-size:10px" id="ndax-status-label">
+        <span class="pulse" style="width:7px;height:7px;border-radius:50%;background:var(--sub);display:inline-block"></span>NDAX
+      </div>
+    </div>
+  </div>
+
+  <!-- Crypto config summary -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+    <div class="metric" style="--ac:var(--green)"><div class="metric-label">Profit Target</div><div class="metric-value g" id="c-profit-target">20%</div><div class="metric-meta">auto-sell trigger</div></div>
+    <div class="metric" style="--ac:var(--red)"><div class="metric-label">Stop Loss</div><div class="metric-value r" id="c-stop-loss">-15%</div><div class="metric-meta">auto-exit trigger</div></div>
+    <div class="metric" style="--ac:var(--orange)"><div class="metric-label">Cross Transfer</div><div class="metric-value o">30%</div><div class="metric-meta">of gain → conservative</div></div>
+  </div>
+
+  <!-- Positions -->
+  <div class="sec-head"><div class="sec-title">NDAX Positions</div><div class="sec-sub" id="ndax-note">Configure NDAX_API_KEY in .env to connect</div></div>
+  <div class="card table-wrap"><table>
+    <thead><tr><th>Symbol</th><th>Qty</th><th>Price</th><th>Value</th><th>Gain/Loss</th><th>24h</th><th>Status</th></tr></thead>
+    <tbody id="crypto-positions"><tr><td colspan="7" style="text-align:center;padding:24px;color:var(--sub)">No crypto positions · Connect NDAX to begin</td></tr></tbody>
+  </table></div>
+
+  <!-- Manual crypto trade -->
+  <div class="two-panel">
+    <div>
+      <div class="sec-head"><div class="sec-title">Manual Crypto Order</div></div>
+      <div class="card" style="padding:18px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:3px">
+          <button class="btn btn-sm" id="cbuy-btn" onclick="setCryptoMode('buy')" style="flex:1;background:rgba(255,152,0,.15);color:var(--orange);border:none">Buy</button>
+          <button class="btn btn-sm" id="csell-btn" onclick="setCryptoMode('sell')" style="flex:1;background:transparent;color:var(--sub);border:none">Sell</button>
+        </div>
+        <div class="input-group"><label class="input-label">Symbol (e.g. BTC/CAD)</label><input class="input" id="c-symbol" placeholder="BTC/CAD"/></div>
+        <div id="c-buy-row" class="input-group"><label class="input-label">Amount (CAD $)</label><input class="input" id="c-amount" type="number" min="1" placeholder="100"/></div>
+        <div id="c-sell-row" class="input-group" style="display:none"><label class="input-label">Qty (coins)</label><input class="input" id="c-qty" type="number" min="0.00001" placeholder="0.001"/></div>
+        <button class="btn btn-orange" id="c-submit" onclick="submitCryptoTrade()">Buy</button>
+      </div>
+    </div>
+    <div>
+      <div class="sec-head"><div class="sec-title">Recent Crypto Trades</div></div>
+      <div class="card table-wrap"><table>
+        <thead><tr><th>Date</th><th>Symbol</th><th>Type</th><th>Amount</th></tr></thead>
+        <tbody id="crypto-trades"><tr><td colspan="4" style="text-align:center;padding:24px;color:var(--sub)">No trades yet</td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<!-- TRADE (Conservative manual) -->
+<div id="section-trade" style="display:none;flex-direction:column;gap:20px">
+  <div class="topbar"><div><div class="page-title">Manual Conservative Trade</div><div class="page-sub">Buy or sell dividend ETFs directly</div></div></div>
+  <div class="two-panel">
+    <div>
+      <div class="card" style="padding:18px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:3px">
+          <button class="btn btn-sm" id="buy-tab" onclick="setConsMode('buy')" style="flex:1;background:rgba(0,230,118,.15);color:var(--green);border:none">Buy</button>
+          <button class="btn btn-sm" id="sell-tab" onclick="setConsMode('sell')" style="flex:1;background:transparent;color:var(--sub);border:none">Sell</button>
+        </div>
+        <div class="input-group"><label class="input-label">Symbol</label><input class="input" id="cons-symbol" placeholder="SCHD" style="text-transform:uppercase"/></div>
+        <div id="cons-buy-row" class="input-group"><label class="input-label">Amount ($)</label><input class="input" id="cons-amount" type="number" min="1" placeholder="50"/></div>
+        <div id="cons-sell-row" class="input-group" style="display:none"><label class="input-label">Shares</label><input class="input" id="cons-qty" type="number" placeholder="0.5"/></div>
+        <div style="display:flex;gap:7px"><button class="btn btn-green" id="cons-submit" onclick="submitConsTrade()">Buy</button><button class="btn btn-ghost btn-sm" onclick="getConsQuote()">Quote</button><span id="cons-quote" style="font-size:11px;color:var(--sub);align-self:center">—</span></div>
+      </div>
+    </div>
+    <div>
+      <div class="sec-head"><div class="sec-title">Top Picks Right Now</div></div>
+      <div class="card" id="quick-picks" style="padding:16px;display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SAVINGS -->
+<div id="section-savings" style="display:none;flex-direction:column;gap:20px">
+  <div class="topbar">
+    <div><div class="page-title">Savings Vault</div><div class="page-sub">30% of all gains — protected, never auto-reinvested</div></div>
+    <div class="topbar-right"><button class="btn btn-amber" onclick="openWithdrawModal()">↑ Withdraw</button></div>
+  </div>
+  <div class="two-panel">
+    <div class="card" style="padding:18px;display:flex;flex-direction:column;gap:14px">
+      <div><div style="font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.1em">Balance</div><div style="font-family:var(--font-h);font-size:34px;font-weight:700;color:var(--blue)" id="sav-balance">—</div></div>
+      <div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font-size:10px;color:var(--sub)">Goal $500</span><span style="font-size:10px;color:var(--blue)" id="sav-pct">0%</span></div>
+        <div style="height:7px;background:var(--border);border-radius:3px;overflow:hidden"><div id="sav-bar" style="height:100%;border-radius:3px;background:linear-gradient(90deg,var(--blue),var(--green));transition:width .7s ease;width:0%"></div></div>
+      </div>
+      <div style="font-size:10.5px;color:var(--sub);line-height:1.7">
+        This vault collects 30% of every dividend ETF rotation gain and 30% of every crypto profit-take.
+        It never gets automatically reinvested. Withdraw via the button above — the ledger updates,
+        then you transfer manually from Alpaca or your bank.
+      </div>
+    </div>
+    <div>
+      <div class="sec-head"><div class="sec-title">Savings History</div></div>
+      <div class="card table-wrap"><table>
+        <thead><tr><th>Date</th><th>Amount</th><th>Source</th><th>Total</th></tr></thead>
+        <tbody id="sav-hist"><tr><td colspan="4" style="text-align:center;padding:20px;color:var(--sub)">No savings yet</td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<!-- EMAIL -->
+<div id="section-email" style="display:none;flex-direction:column;gap:20px">
+  <div class="topbar">
+    <div><div class="page-title">Email Reports</div><div class="page-sub">Daily report + instant alerts on any auto-action</div></div>
+    <div class="topbar-right"><button class="btn btn-green btn-sm" id="send-email-btn" onclick="sendReport()">📧 Send Now</button></div>
+  </div>
+  <div id="email-status" class="modal-warn">⚠ Not configured — add ALERT_EMAIL_FROM and ALERT_EMAIL_PASSWORD to .env</div>
+  <div class="two-panel">
+    <div>
+      <div class="sec-head"><div class="sec-title">Setup (MC Gardener style)</div></div>
+      <div class="card" style="padding:18px;display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:11px;color:var(--sub);line-height:1.7">Same Gmail SMTP setup as MC Gardener Pro. Add to <code style="background:var(--bg);padding:1px 5px;border-radius:3px;color:var(--green)">.env</code>:</div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:12px"><pre style="font-family:var(--font-m);font-size:10.5px;color:var(--green);line-height:1.8">ALERT_EMAIL_FROM=you@gmail.com
+ALERT_EMAIL_PASSWORD=xxxx xxxx xxxx xxxx
+ALERT_EMAIL_TO=you@gmail.com</pre></div>
+        <div style="font-size:10px;color:var(--sub);line-height:1.6"><strong style="color:var(--amber)">App Password</strong> ≠ your Google login. Create at: Google Account → Security → 2-Step → App Passwords. 16 characters with spaces.</div>
+        <div style="font-size:10px;color:var(--sub)">Auto-send cron (7am daily + scanner alerts):</div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:10px"><pre style="font-family:var(--font-m);font-size:10px;color:var(--green);line-height:1.7">0 7 * * * curl -X POST http://localhost:5000/api/email/send
+30 9,13,17 * * 1-5 python scanner.py</pre></div>
+      </div>
+    </div>
+    <div>
+      <div class="sec-head"><div class="sec-title">Email Log</div></div>
+      <div class="card table-wrap"><table>
+        <thead><tr><th>Date</th><th>Subject</th><th>Status</th></tr></thead>
+        <tbody id="email-log"><tr><td colspan="3" style="text-align:center;padding:20px;color:var(--sub)">No emails sent yet</td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="section-settings" style="display:none;flex-direction:column;gap:20px">
+  <div class="topbar">
+    <div><div class="page-title">Settings</div><div class="page-sub">All thresholds, intervals and modes</div></div>
+    <div class="topbar-right"><button class="btn btn-green" onclick="saveSettings()">Save</button></div>
+  </div>
+  <div class="two-panel">
+    <div>
+      <div class="sec-head"><div class="sec-title">Conservative Engine</div></div>
+      <div class="card" style="padding:18px;display:flex;flex-direction:column;gap:12px">
+        <div class="input-group"><label class="input-label">Monthly default budget ($)</label><input class="input" id="s-budget" type="number" min="10" placeholder="100"/></div>
+        <div class="input-group"><label class="input-label">Rotation threshold (% yield improvement needed)</label><input class="input" id="s-threshold" type="number" step="0.1" placeholder="1.0"/></div>
+        <div class="input-group"><label class="input-label">Crash threshold (% SPY drop)</label><input class="input" id="s-crash" type="number" step="0.5" placeholder="-5"/></div>
+        <div class="input-group"><label class="input-label">Scan interval (hours)</label><input class="input" id="s-scan" type="number" min="1" max="24" placeholder="4"/></div>
+        <div class="input-group"><label class="input-label">Savings goal ($)</label><input class="input" id="s-goal" type="number" placeholder="500"/></div>
+      </div>
+    </div>
+    <div>
+      <div class="sec-head"><div class="sec-title">Crypto Engine (NDAX)</div></div>
+      <div class="card" style="padding:18px;display:flex;flex-direction:column;gap:12px">
+        <div class="input-group"><label class="input-label">Profit-take trigger (% gain)</label><input class="input" id="s-profit" type="number" step="1" placeholder="20"/></div>
+        <div class="input-group"><label class="input-label">Stop-loss trigger (% loss, negative)</label><input class="input" id="s-stop" type="number" step="1" placeholder="-15"/></div>
+        <div class="input-group"><label class="input-label">% of gain cross-transferred to conservative</label><input class="input" id="s-cross" type="number" step="5" placeholder="30"/></div>
+        <div class="input-group"><label class="input-label">Watched symbols (comma-separated)</label><input class="input" id="s-symbols" placeholder="BTC/CAD, ETH/CAD"/></div>
+        <div class="input-group"><label class="input-label">API Mode</label>
+          <select class="input" id="s-mode"><option value="paper">Paper Trading (Alpaca)</option><option value="live">Live Trading (Alpaca)</option></select>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GO LIVE -->
+<div id="section-golive" style="display:none;flex-direction:column;gap:20px">
+  <div class="topbar"><div><div class="page-title">Go Live 🚀</div><div class="page-sub">Alpaca paper → real money + NDAX crypto connection</div></div></div>
+
+  <!-- Alpaca $0 fix -->
+  <div style="background:rgba(255,171,64,.06);border:1px solid rgba(255,171,64,.25);border-radius:var(--r2);padding:18px 22px">
+    <div style="font-family:var(--font-h);font-size:15px;font-weight:700;color:var(--amber);margin-bottom:8px">⚠ Fix: Alpaca showing $0 balance</div>
+    <div style="font-size:11.5px;color:var(--sub);line-height:1.8">
+      Your paper account has <strong style="color:var(--text)">separate API keys</strong> from your live account.
+      The $0 means your <code style="background:var(--bg);padding:1px 5px;border-radius:3px;color:var(--green)">.env</code> has your <em>live</em> keys but is hitting the <em>paper</em> endpoint — or vice versa.<br/><br/>
+      <strong style="color:var(--text)">Fix:</strong> Go to <code style="background:var(--bg);padding:1px 5px;border-radius:3px;color:var(--green)">app.alpaca.markets</code> → <strong>top-left dropdown → switch to "Paper Trading"</strong> → API Keys → generate keys from <em>that screen</em>. Those keys will show your $1M paper balance.
+    </div>
+  </div>
+
+  <div style="background:linear-gradient(135deg,#0a1a0f,#080e1a);border:1px solid rgba(0,230,118,.15);border-radius:var(--r2);padding:22px">
+    <div style="font-family:var(--font-h);font-size:16px;font-weight:700;margin-bottom:14px">Alpaca: Paper → Real Money</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:12px"><div style="width:24px;height:24px;border-radius:50%;background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.3);display:grid;place-items:center;font-size:10px;color:var(--green);flex-shrink:0;font-weight:700">1</div><div><strong>Open live Alpaca account</strong> at app.alpaca.markets → fund via ACH bank transfer → generate Live API keys<br/><span style="font-size:10px;color:var(--sub)">Takes 1–3 days to settle. Minimum $1 — no minimum required.</span></div></div>
+      <div style="display:flex;gap:12px"><div style="width:24px;height:24px;border-radius:50%;background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.3);display:grid;place-items:center;font-size:10px;color:var(--green);flex-shrink:0;font-weight:700">2</div><div><strong>Update .env with live keys</strong> → Settings → change mode to Live → Save</div></div>
+      <div style="display:flex;gap:12px"><div style="width:24px;height:24px;border-radius:50%;background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.3);display:grid;place-items:center;font-size:10px;color:var(--green);flex-shrink:0;font-weight:700">3</div><div><strong>Test with $10</strong> → Deploy $10 → verify trade appears in Alpaca dashboard → scale up</div></div>
+    </div>
+    <div style="margin-top:16px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:12px"><pre style="font-family:var(--font-m);font-size:10px;color:var(--green);line-height:1.8"># Cron jobs (add to crontab -e)
+30 9 1 * * curl -X POST http://localhost:5000/api/conservative/deploy
+30 9,13,17 * * 1-5 python /path/to/scanner.py
+0  7 * * * curl -X POST http://localhost:5000/api/email/send</pre></div>
+  </div>
+
+  <div style="background:linear-gradient(135deg,#1a0a00,#080e1a);border:1px solid rgba(255,152,0,.2);border-radius:var(--r2);padding:22px">
+    <div style="font-family:var(--font-h);font-size:16px;font-weight:700;color:var(--orange);margin-bottom:14px">NDAX Crypto Connection</div>
+    <div style="font-size:11px;color:var(--sub);line-height:1.8;margin-bottom:12px">
+      NDAX has a full WebSocket API — WealthPilot connects via the <code style="color:var(--orange)">ccxt</code> library which handles the protocol automatically.
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:12px"><div style="width:24px;height:24px;border-radius:50%;background:rgba(255,152,0,.1);border:1px solid rgba(255,152,0,.3);display:grid;place-items:center;font-size:10px;color:var(--orange);flex-shrink:0;font-weight:700">1</div><div><strong>Install ccxt:</strong><br/><code style="font-size:10px;color:var(--orange)">pip install ccxt</code></div></div>
+      <div style="display:flex;gap:12px"><div style="width:24px;height:24px;border-radius:50%;background:rgba(255,152,0,.1);border:1px solid rgba(255,152,0,.3);display:grid;place-items:center;font-size:10px;color:var(--orange);flex-shrink:0;font-weight:700">2</div><div><strong>Get NDAX API keys:</strong> ndax.io → account → API Keys → generate key + secret + note your User ID</div></div>
+      <div style="display:flex;gap:12px"><div style="width:24px;height:24px;border-radius:50%;background:rgba(255,152,0,.1);border:1px solid rgba(255,152,0,.3);display:grid;place-items:center;font-size:10px;color:var(--orange);flex-shrink:0;font-weight:700">3</div><div><strong>Add to .env:</strong><div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:10px;margin-top:6px"><pre style="font-family:var(--font-m);font-size:10px;color:var(--orange);line-height:1.7">NDAX_API_KEY=your_key_here
+NDAX_API_SECRET=your_secret_here
+NDAX_USER_ID=your_user_id_here</pre></div></div></div>
+      <div style="display:flex;gap:12px"><div style="width:24px;height:24px;border-radius:50%;background:rgba(255,152,0,.1);border:1px solid rgba(255,152,0,.3);display:grid;place-items:center;font-size:10px;color:var(--orange);flex-shrink:0;font-weight:700">4</div><div>Restart app → Crypto tab will show live NDAX positions and activate auto-exit logic</div></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- Withdraw Modal -->
+<div class="modal-backdrop" id="withdraw-modal">
+  <div class="modal">
+    <div class="modal-title">↑ Withdraw from Savings</div>
+    <div class="modal-warn">Records the withdrawal in the ledger. Transfer funds manually from Alpaca or your bank.</div>
+    <div style="font-size:11px;color:var(--sub)">Available: <strong style="color:var(--blue)" id="modal-avail">—</strong></div>
+    <div class="input-group"><label class="input-label">Amount ($)</label><input class="input" id="w-amount" type="number" min="1" placeholder="50"/></div>
+    <div class="input-group"><label class="input-label">Reason (optional)</label><input class="input" id="w-reason" placeholder="Emergency, vacation…"/></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeWithdrawModal()">Cancel</button>
+      <button class="btn btn-amber" id="w-submit" onclick="submitWithdraw()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+let D={}; let consMode='buy'; let cryptoMode='buy';
+const fmt=n=>n==null?'—':'$'+parseFloat(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtQ=n=>n==null?'—':parseFloat(n).toFixed(6);
+const fmtP=n=>n==null?'—':(n>=0?'+':'')+parseFloat(n).toFixed(2)+'%';
+const fmtD=s=>s?new Date(s).toLocaleDateString('en-CA'):'—';
+const clr=n=>n>=0?'pos':'neg';
+
+function toast(m,t='ok'){const e=document.getElementById('toast');e.textContent=m;e.className=`toast ${t} show`;setTimeout(()=>e.className='toast',3500)}
+
+function showSection(n){
+  document.querySelectorAll('[id^="section-"]').forEach(e=>e.style.display='none');
+  const s=document.getElementById('section-'+n);
+  if(s){s.style.display='flex';s.style.flexDirection='column';s.style.gap='20px'}
+  document.querySelectorAll('.nav a').forEach(a=>a.classList.remove('active'));
+  document.querySelectorAll('.nav a').forEach(a=>{if(a.getAttribute('onclick')&&a.getAttribute('onclick').includes("'"+n+"'"))a.classList.add('active')});
+  document.querySelectorAll('.side-tab').forEach(t=>t.classList.remove('active'));
+  if(n==='overview'||n==='opportunities'||n==='flow'||n==='trade'){document.querySelectorAll('.side-tab')[0].classList.add('active')}
+  else if(n==='crypto'){document.querySelectorAll('.side-tab')[1].classList.add('active')}
+  else if(n==='savings'){document.querySelectorAll('.side-tab')[2].classList.add('active')}
+  if(n==='trade')renderQuickPicks();
+  if(n==='settings')populateSettings();
+  if(n==='opportunities')renderOpportunities();
+  if(n==='savings')renderSavings();
+  if(n==='crypto')renderCrypto();
+  if(n==='flow')renderFlow();
+  if(n==='email')renderEmailLog();
+}
+
+async function loadDashboard(){
+  try{const r=await fetch('/api/dashboard');D=await r.json();renderAll()}
+  catch(e){toast('Failed to load','err')}
+}
+
+function renderAll(){
+  const c=D.conservative||{}, cr=D.crypto||{};
+  const cons_mv=c.total_mv||0; const crypto_mv=cr.total_mv||0; const sav=D.savings_total||0;
+  const total=cons_mv+crypto_mv+sav;
+
+  document.getElementById('sb-total').textContent=fmt(total);
+  document.getElementById('sb-cons').textContent=fmt(cons_mv);
+  document.getElementById('sb-crypto').textContent=fmt(crypto_mv);
+  document.getElementById('sb-savings').textContent=fmt(sav);
+  document.getElementById('last-sync').textContent='Last sync: '+new Date(D.server_time||Date.now()).toLocaleTimeString();
+
+  // Sentiment
+  const s=c.sentiment||{}; const sb=document.getElementById('sent-banner');
+  sb.className='sentiment '+(s.signal||'hold');
+  const icons={hold:'📊',buy_dip:'📈',caution:'⚠️',crash:'🚨'};
+  const lbls={hold:'Market Normal',buy_dip:'Buy the Dip!',caution:'Use Caution',crash:'Crash — Selling to Cash'};
+  document.getElementById('sent-icon').textContent=icons[s.signal]||'📊';
+  document.getElementById('sent-label').textContent=lbls[s.signal]||'Hold';
+  document.getElementById('sent-detail').textContent=s.detail||'—';
+  const spyEl=document.getElementById('sent-spy');
+  spyEl.textContent=s.spy_change!=null?fmtP(s.spy_change*100):'—';
+  if(s.spy_change!=null)spyEl.className=clr(s.spy_change);
+  document.getElementById('sent-rsi').textContent=s.rsi!=null?s.rsi.toFixed(0):'—';
+
+  // Metrics
+  document.getElementById('m-total').textContent=fmt(total);
+  const cgl=c.gain_loss||0; const cglEl=document.getElementById('m-cons-gl');
+  cglEl.textContent=(cgl>=0?'▲ +':'▼ ')+fmt(Math.abs(cgl));
+  cglEl.className='metric-value '+(cgl>=0?'g':'r');
+  document.getElementById('m-cons-gl-pct').textContent=fmtP(c.gain_loss_pct||0)+' on cost';
+  const crgl=cr.total_gain||0; const crglEl=document.getElementById('m-crypto-gl');
+  crglEl.textContent=(crgl>=0?'▲ +':'▼ ')+fmt(Math.abs(crgl));
+  crglEl.className='metric-value '+(crgl>=0?'g':'r');
+  document.getElementById('m-crypto-gl-pct').textContent=fmtP(cr.total_gain_pct||0)+' on cost';
+  document.getElementById('m-savings').textContent=fmt(sav);
+
+  // Mode
+  const mode=D.config?.mode||'paper';
+  document.getElementById('deploy-mode-lbl').textContent=mode==='live'?'LIVE — real money':'Paper trading';
+
+  // Deploy split
+  updateDeploySplit();
+
+  // Conservative holdings
+  const h=c.holdings||[]; const tv=c.total_mv||0;
+  document.getElementById('cons-holdings').innerHTML=h.length?h.map(p=>`<tr>
+    <td><strong>${p.symbol}</strong></td>
+    <td>${fmt(p.market_value)}</td>
+    <td class="${clr(p.unrealized_pl)}">${fmt(p.unrealized_pl)} (${fmtP(p.unrealized_plpc*100)})</td>
+    <td>${fmt(p.cost_basis)}</td>
+  </tr>`).join(''):'<tr><td colspan="4" style="text-align:center;padding:22px;color:var(--sub)">No positions yet — deploy to begin</td></tr>';
+
+  // Rotation log
+  const rl=c.rotations||[];
+  document.getElementById('rotation-log').innerHTML=rl.length?rl.map(r=>`<tr>
+    <td><strong>${r.sold_symbol}</strong></td>
+    <td style="color:var(--green)"><strong>${r.bought_symbol}</strong></td>
+    <td class="${clr(r.gain)}">${fmt(r.gain)}</td>
+    <td style="color:var(--blue)">${fmt(r.saved)}</td>
+  </tr>`).join(''):'<tr><td colspan="4" style="text-align:center;padding:22px;color:var(--sub)">No rotations yet</td></tr>';
+
+  // Alerts
+  const ac=(D.unseen_alerts||[]).length;
+
+  // Email config
+  if(D.email_configured){
+    const es=document.getElementById('email-status');
+    if(es){es.style.background='rgba(0,230,118,.06)';es.style.borderColor='rgba(0,230,118,.25)';es.style.color='var(--green)';es.textContent='✓ Email configured — reports active'}
+  }
+
+  // NDAX status
+  const ndaxConn=cr.ndax_connected;
+  const ndaxEl=document.getElementById('ndax-status-label');
+  if(ndaxEl){ndaxEl.innerHTML=ndaxConn?'<span style="width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);display:inline-block;margin-right:4px"></span>NDAX Connected':'<span style="width:7px;height:7px;border-radius:50%;background:var(--sub);display:inline-block;margin-right:4px"></span>NDAX Not Connected'}
+  const ndaxNote=document.getElementById('ndax-note');
+  if(ndaxNote)ndaxNote.textContent=ndaxConn?'Live NDAX positions':'Add NDAX_API_KEY to .env — see Go Live tab';
+}
+
+function updateDeploySplit(){
+  const v=parseFloat(document.getElementById('deploy-amount').value)||(D.config?.monthly_budget||100);
+  document.getElementById('deploy-invest').textContent=fmt(v*0.7);
+  document.getElementById('deploy-save').textContent=fmt(v*0.3);
+}
+
+async function runDeploy(){
+  const amount=parseFloat(document.getElementById('deploy-amount').value)||null;
+  const btn=document.getElementById('deploy-btn');btn.disabled=true;btn.innerHTML='<span class="spinner"></span>';
+  try{const r=await fetch('/api/conservative/deploy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount})});const d=await r.json();
+    if(d.ok){if(d.result.status==='halted')toast('⛔ '+d.result.reason,'err');else toast('✓ Deployed — bought top dividend ETFs','ok');await loadDashboard()}
+    else toast('Failed: '+(d.result?.reason||d.error),'err');
+  }catch(e){toast('Error','err')}finally{btn.disabled=false;btn.textContent='🚀 Deploy'}
+}
+
+async function runScan(){
+  toast('🔄 Scanning dividend universe…','ok');
+  const r=await fetch('/api/conservative/scan',{method:'POST'});const d=await r.json();
+  if(d.ok){
+    const rots=d.result?.rotations||[];
+    if(rots.length)toast(`✓ ${rots.length} rotation(s) executed`,'ok');
+    else if(d.result?.action==='crash_sell')toast('⛔ Crash detected — sold all positions to cash','err');
+    else toast('✓ Scan complete — holding current positions','ok');
+    await loadDashboard();
+  }
+}
+
+function renderOpportunities(){
+  const opps=(D.conservative?.opportunities||[]);
+  const threshold=(D.config?.rotation_threshold||1.0);
+  document.getElementById('threshold-display').textContent=threshold.toFixed(1)+'%';
+  const el=document.getElementById('opp-list');
+  if(!opps.length){el.innerHTML='<div style="color:var(--sub);font-size:11px">Loading opportunities…</div>';return}
+  el.innerHTML=opps.map((o,i)=>{
+    const isTop=i===0; const maxYield=opps[0].yield_pct;
+    return`<div class="opp-row">
+      <div style="display:flex;align-items:center;gap:10px">
+        ${isTop?'<span style="font-size:10px;background:rgba(0,230,118,.15);color:var(--green);border:1px solid rgba(0,230,118,.3);padding:1px 7px;border-radius:3px;font-weight:700">BEST</span>':'<span style="font-size:11px;color:var(--sub);width:32px;text-align:center">#${i+1}</span>'}
+        <div><div class="opp-sym">${o.symbol}</div><div style="font-size:10px;color:var(--sub)">${o.desc.split('—')[0].trim()}</div></div>
+      </div>
+      <div class="opp-score">
+        <div><div style="font-size:10px;color:var(--sub)">Yield</div><div style="font-family:var(--font-h);font-size:14px;color:var(--green)">${o.yield_pct.toFixed(1)}%</div></div>
+        <div><div style="font-size:10px;color:var(--sub)">Safety</div><div style="font-family:var(--font-h);font-size:14px">${o.safety.toFixed(1)}</div></div>
+        <div><div class="yield-bar"><div class="yield-fill" style="width:${(o.yield_pct/maxYield*100).toFixed(0)}%"></div></div><div style="font-size:9px;color:var(--sub);margin-top:2px">Score ${o.score}</div></div>
+        ${o.signal==='buy_dip'?'<span class="score-pill">RSI dip!</span>':''}
+        <button class="btn btn-ghost btn-sm" onclick="prefillConsBuy('${o.symbol}')">Trade</button>
+      </div>
+    </div>`}).join('');
+}
+
+function renderCrypto(){
+  const cr=D.crypto||{};
+  document.getElementById('c-profit-target').textContent='+'+((cr.profit_target)||20).toFixed(0)+'%';
+  document.getElementById('c-stop-loss').textContent=((cr.stop_loss)||-15).toFixed(0)+'%';
+
+  const pos=cr.positions||[];
+  document.getElementById('crypto-positions').innerHTML=pos.length?pos.map(p=>{
+    const at_profit=(p.gain_pct/100)>=(cr.profit_target/100||0.2);
+    const at_stop  =(p.gain_pct/100)<=(cr.stop_loss/100||-.15);
+    const status=at_profit?`<span class="badge badge-profit">Near target</span>`:
+                 at_stop  ?`<span class="badge badge-stop">Near stop</span>`:
+                 `<span class="badge badge-auto">Watching</span>`;
+    return`<tr>
+      <td><strong>${p.symbol}</strong></td>
+      <td>${fmtQ(p.qty)}</td>
+      <td>${fmt(p.price)}</td>
+      <td>${fmt(p.market_value)}</td>
+      <td class="${clr(p.gain)}">${fmt(p.gain)} (${fmtP(p.gain_pct)})</td>
+      <td class="${clr(p.change_24h)}">${fmtP(p.change_24h)}</td>
+      <td>${status}</td>
+    </tr>`}).join(''):'<tr><td colspan="7" style="text-align:center;padding:22px;color:var(--sub)">No positions or NDAX not connected</td></tr>';
+
+  const trades=cr.recent_trades||[];
+  document.getElementById('crypto-trades').innerHTML=trades.length?trades.map(t=>`<tr>
+    <td style="color:var(--sub)">${fmtD(t.date)}</td>
+    <td><strong>${t.symbol}</strong></td>
+    <td><span class="badge badge-${t.action}">${t.action}</span></td>
+    <td>${fmt(t.amount)}</td>
+  </tr>`).join(''):'<tr><td colspan="4" style="text-align:center;padding:22px;color:var(--sub)">No trades yet</td></tr>';
+}
+
+function renderFlow(){
+  const c=D.conservative||{}; const cr=D.crypto||{};
+  document.getElementById('flow-crypto').textContent=fmt(cr.total_mv||0);
+  document.getElementById('flow-cons').textContent=fmt(c.total_mv||0);
+  document.getElementById('flow-savings').textContent=fmt(D.savings_total||0);
+
+  const xfers=D.cross_transfers||[];
+  document.getElementById('cross-transfers').innerHTML=xfers.length?xfers.map(x=>`<tr>
+    <td style="color:var(--sub)">${fmtD(x.date)}</td>
+    <td style="color:var(--orange)">${x.from_side}</td>
+    <td style="color:var(--green)">${x.to_side}</td>
+    <td style="color:var(--green)">${fmt(x.amount)}</td>
+    <td style="color:var(--sub)">${fmt(x.source_gain)}</td>
+    <td style="color:var(--sub);font-size:10px">${x.note||'—'}</td>
+  </tr>`).join(''):'<tr><td colspan="6" style="text-align:center;padding:22px;color:var(--sub)">No cross transfers yet</td></tr>';
+}
+
+function renderSavings(){
+  const sav=D.savings_total||0; const goal=D.goal_savings||500;
+  document.getElementById('sav-balance').textContent=fmt(sav);
+  document.getElementById('modal-avail').textContent=fmt(sav);
+  const pct=Math.min(sav/goal*100,100);
+  document.getElementById('sav-pct').textContent=pct.toFixed(0)+'%';
+  document.getElementById('sav-bar').style.width=pct+'%';
+  const hist=D.savings_history||[];
+  document.getElementById('sav-hist').innerHTML=hist.length?hist.map(s=>{const neg=s.amount<0;return`<tr>
+    <td style="color:var(--sub)">${fmtD(s.date)}</td>
+    <td class="${neg?'neg':'pos'}">${fmt(s.amount)}</td>
+    <td style="color:var(--sub);font-size:10px">${s.source}</td>
+    <td>${fmt(s.total)}</td>
+  </tr>`}).join(''):'<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--sub)">No savings yet</td></tr>';
+}
+
+function renderEmailLog(){
+  const logs=D.email_log||[];
+  document.getElementById('email-log').innerHTML=logs.length?logs.map(l=>`<tr>
+    <td style="color:var(--sub)">${fmtD(l.date)}</td>
+    <td style="color:var(--sub);font-size:10px">${l.subject||'—'}</td>
+    <td><span class="badge badge-${l.status==='sent'?'buy':'sell'}">${l.status}</span></td>
+  </tr>`).join(''):'<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--sub)">No emails yet</td></tr>';
+}
+
+function renderQuickPicks(){
+  const opps=(D.conservative?.opportunities||[]).slice(0,4);
+  const budget=(D.config?.monthly_budget||100)*0.7;
+  document.getElementById('quick-picks').innerHTML=opps.map(o=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
+    <div><strong style="font-family:var(--font-h)">${o.symbol}</strong> <span style="font-size:10px;color:var(--sub)">${o.yield_pct.toFixed(1)}% yield</span></div>
+    <button class="btn btn-ghost btn-sm" onclick="prefillConsBuy('${o.symbol}')">Trade</button>
+  </div>`).join('');
+}
+
+function prefillConsBuy(sym){document.getElementById('cons-symbol').value=sym;setConsMode('buy');showSection('trade')}
+
+// Conservative trade
+function setConsMode(m){
+  consMode=m;
+  document.getElementById('buy-tab').style.background=m==='buy'?'rgba(0,230,118,.15)':'transparent';
+  document.getElementById('buy-tab').style.color=m==='buy'?'var(--green)':'var(--sub)';
+  document.getElementById('sell-tab').style.background=m==='sell'?'rgba(255,82,82,.15)':'transparent';
+  document.getElementById('sell-tab').style.color=m==='sell'?'var(--red)':'var(--sub)';
+  document.getElementById('cons-buy-row').style.display=m==='buy'?'flex':'none';
+  document.getElementById('cons-sell-row').style.display=m==='sell'?'flex':'none';
+  document.getElementById('cons-submit').textContent=m==='buy'?'Buy':'Sell';
+  document.getElementById('cons-submit').className='btn '+(m==='buy'?'btn-green':'btn-red');
+}
+
+async function submitConsTrade(){
+  const sym=document.getElementById('cons-symbol').value.trim().toUpperCase();if(!sym){toast('Enter symbol','err');return}
+  if(consMode==='buy'){
+    const amt=parseFloat(document.getElementById('cons-amount').value);if(!amt||amt<1){toast('Amount >= $1','err');return}
+    const r=await fetch('/api/conservative/buy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({symbol:sym,amount:amt})});const d=await r.json();
+    d.ok?toast(`✓ Bought ${fmt(amt)} of ${sym}`,'ok'):toast('Failed: '+d.error,'err');
+  }else{
+    const qty=parseFloat(document.getElementById('cons-qty').value);if(!qty||qty<=0){toast('Qty > 0','err');return}
+    const r=await fetch('/api/conservative/sell',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({symbol:sym,qty})});const d=await r.json();
+    d.ok?toast(`✓ Sold ${qty} of ${sym}`,'ok'):toast('Failed: '+d.error,'err');
+  }
+  await loadDashboard();
+}
+
+async function getConsQuote(){
+  const sym=document.getElementById('cons-symbol').value.trim().toUpperCase();if(!sym)return;
+  const r=await fetch('/api/quote/'+sym);const d=await r.json();
+  document.getElementById('cons-quote').textContent=d.price?`${sym}: ${fmt(d.price)}`:'N/A';
+}
+
+// Crypto trade
+function setCryptoMode(m){
+  cryptoMode=m;
+  document.getElementById('cbuy-btn').style.background=m==='buy'?'rgba(255,152,0,.15)':'transparent';
+  document.getElementById('cbuy-btn').style.color=m==='buy'?'var(--orange)':'var(--sub)';
+  document.getElementById('csell-btn').style.background=m==='sell'?'rgba(255,82,82,.15)':'transparent';
+  document.getElementById('csell-btn').style.color=m==='sell'?'var(--red)':'var(--sub)';
+  document.getElementById('c-buy-row').style.display=m==='buy'?'flex':'none';
+  document.getElementById('c-sell-row').style.display=m==='sell'?'flex':'none';
+  document.getElementById('c-submit').textContent=m==='buy'?'Buy':'Sell';
+  document.getElementById('c-submit').className='btn '+(m==='buy'?'btn-orange':'btn-red');
+}
+
+async function submitCryptoTrade(){
+  const sym=document.getElementById('c-symbol').value.trim().toUpperCase().replace(' ','');if(!sym){toast('Enter symbol','err');return}
+  if(cryptoMode==='buy'){
+    const amt=parseFloat(document.getElementById('c-amount').value);if(!amt||amt<1){toast('Amount >= $1','err');return}
+    const r=await fetch('/api/crypto/buy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({symbol:sym,amount:amt})});const d=await r.json();
+    d.ok?toast(`✓ Bought ${fmt(amt)} of ${sym}`,'ok'):toast('Failed: '+(d.result?.reason||d.error),'err');
+  }else{
+    const qty=parseFloat(document.getElementById('c-qty').value);if(!qty||qty<=0){toast('Qty > 0','err');return}
+    const r=await fetch('/api/crypto/sell',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({symbol:sym,qty})});const d=await r.json();
+    d.ok?toast(`✓ Sold ${qty} of ${sym}`,'ok'):toast('Failed: '+(d.result?.reason||d.error),'err');
+  }
+  await loadDashboard();renderCrypto();
+}
+
+async function cryptoCheck(){
+  const btn=document.getElementById('crypto-check-btn');btn.disabled=true;btn.innerHTML='<span class="spinner"></span>';
+  const r=await fetch('/api/crypto/check',{method:'POST'});const d=await r.json();btn.disabled=false;btn.textContent='Check Exits';
+  const acts=d.result?.actions||[];
+  if(acts.length)toast(`✓ ${acts.length} crypto action(s) taken`,'ok');else toast('✓ No exits triggered','ok');
+  await loadDashboard();renderCrypto();
+}
+
+// Savings withdrawal
+function openWithdrawModal(){document.getElementById('withdraw-modal').classList.add('open')}
+function closeWithdrawModal(){document.getElementById('withdraw-modal').classList.remove('open')}
+async function submitWithdraw(){
+  const amt=parseFloat(document.getElementById('w-amount').value);const reason=document.getElementById('w-reason').value;
+  if(!amt||amt<=0){toast('Enter amount','err');return}
+  const btn=document.getElementById('w-submit');btn.disabled=true;btn.innerHTML='<span class="spinner"></span>';
+  const r=await fetch('/api/savings/withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:amt,reason})});const d=await r.json();
+  btn.disabled=false;btn.textContent='Confirm';
+  if(d.ok){toast(`✓ Withdrew ${fmt(amt)}`,'ok');closeWithdrawModal();await loadDashboard();renderSavings()}
+  else toast(d.result?.reason||'Failed','err');
+}
+
+async function sendReport(){
+  const btn=document.getElementById('send-email-btn');btn.disabled=true;btn.innerHTML='<span class="spinner"></span>';
+  const r=await fetch('/api/email/send',{method:'POST'});const d=await r.json();btn.disabled=false;btn.textContent='📧 Send Now';
+  d.ok?toast('✓ Report sent','ok'):toast('Failed: '+d.message,'err');
+  renderEmailLog();
+}
+
+// Settings
+function populateSettings(){
+  const cfg=D.config||{};
+  document.getElementById('s-budget').value=cfg.monthly_budget||100;
+  document.getElementById('s-threshold').value=cfg.rotation_threshold||1.0;
+  document.getElementById('s-crash').value=(cfg.crash_threshold||-0.05)*100;
+  document.getElementById('s-scan').value=cfg.scan_interval_hours||4;
+  document.getElementById('s-goal').value=cfg.savings_goal||500;
+  document.getElementById('s-profit').value=(cfg.crypto_profit_take||0.20)*100;
+  document.getElementById('s-stop').value=(cfg.crypto_stop_loss||-0.15)*100;
+  document.getElementById('s-cross').value=(cfg.cross_transfer_pct||0.30)*100;
+  document.getElementById('s-symbols').value=(cfg.crypto_symbols||['BTC/CAD','ETH/CAD']).join(', ');
+  document.getElementById('s-mode').value=cfg.mode||'paper';
+}
+
+async function saveSettings(){
+  const symbols=document.getElementById('s-symbols').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const payload={
+    monthly_budget:parseFloat(document.getElementById('s-budget').value),
+    rotation_threshold:parseFloat(document.getElementById('s-threshold').value),
+    crash_threshold:parseFloat(document.getElementById('s-crash').value)/100,
+    scan_interval_hours:parseInt(document.getElementById('s-scan').value),
+    savings_goal:parseFloat(document.getElementById('s-goal').value),
+    crypto_profit_take:parseFloat(document.getElementById('s-profit').value)/100,
+    crypto_stop_loss:parseFloat(document.getElementById('s-stop').value)/100,
+    cross_transfer_pct:parseFloat(document.getElementById('s-cross').value)/100,
+    crypto_symbols:symbols,
+    mode:document.getElementById('s-mode').value,
+  };
+  const r=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const d=await r.json();d.ok?toast('✓ Settings saved','ok'):toast('Save failed','err');
+  await loadDashboard();
+}
+
+loadDashboard();
+setInterval(loadDashboard, 60000);
+</script>
+</body>
+</html>
