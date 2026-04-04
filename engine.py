@@ -5,11 +5,15 @@ New: variable contributions, savings withdrawal, daily HTML email report,
 """
 from __future__ import annotations
 import json, os, sqlite3, smtplib, ssl
+from dotenv import load_dotenv
 from datetime import datetime, timezone, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pathlib import Path
 from typing import Any
+
+# Load .env environment variables
+load_dotenv()
 
 BASE_DIR  = Path(__file__).resolve().parent
 DB_PATH   = BASE_DIR / "ledger" / "portfolio.db"
@@ -147,7 +151,13 @@ def _base() -> str:
     return ALPACA_LIVE_BASE if load_config().get("mode") == "live" else ALPACA_PAPER_BASE
 
 def _headers() -> dict:
-    return {"APCA-API-KEY-ID": os.getenv("ALPACA_PAPER_KEY",""), "APCA-API-SECRET-KEY": os.getenv("ALPACA_PAPER_SECRET","")}
+    print("KEY:", os.getenv("ALPACA_PAPER_KEY"))
+    print("SECRET:", os.getenv("ALPACA_PAPER_SECRET"))
+
+    return {
+        "APCA-API-KEY-ID": os.getenv("ALPACA_PAPER_KEY",""),
+        "APCA-API-SECRET-KEY": os.getenv("ALPACA_PAPER_SECRET","")
+    }
 
 def _get(path: str, base: str | None = None) -> Any:
     import urllib.request
@@ -156,7 +166,12 @@ def _get(path: str, base: str | None = None) -> Any:
         with urllib.request.urlopen(urllib.request.Request(url, headers=_headers()), timeout=10) as r:
             return json.loads(r.read())
     except Exception as e:
-        log({"event": "get_error", "url": url, "error": str(e)}); return None
+        log({"event": "get_error", "url": url, "error": str(e)}); 
+        return None
+    
+    if __name__ == "__main__":
+        print("Testing Alpaca Keys")
+        _headers()
 
 def _post(path: str, body: dict, base: str | None = None) -> Any:
     import urllib.request, urllib.error
@@ -173,7 +188,7 @@ def _post(path: str, body: dict, base: str | None = None) -> Any:
         log({"event":"post_error","url":url,"error":str(e)}); return None
 
 def get_quote(symbol: str) -> float | None:
-    data = _get(f"/stocks/{symbol}/trades/latest", base=ALPACA_DATA_BASE)
+    data = _get(f"/stocks/{symbol}/quotes/latest?feed=iex", base=ALPACA_DATA_BASE)
     return float(data["trade"]["p"]) if data and "trade" in data else None
 
 def get_account() -> dict | None: return _get("/account")
