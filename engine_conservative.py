@@ -123,8 +123,18 @@ def get_orders(status: str = "all", limit: int = 20) -> list[dict]:
     return r if isinstance(r, list) else []
 
 def get_quote(symbol: str) -> float | None:
-    data = _get(f"/stocks/{symbol}/trades/latest", base=ALPACA_DATA)
-    return float(data["trade"]["p"]) if data and "trade" in data else None
+    """
+    Latest trade price. Uses feed=iex so paper-only Alpaca accounts work.
+    Paper accounts cannot access the SIP feed — IEX is the correct feed for them.
+    """
+    data = _get(f"/stocks/{symbol}/trades/latest?feed=iex", base=ALPACA_DATA)
+    if data and "trade" in data:
+        return float(data["trade"]["p"])
+    # Fallback: try latest bar if trade endpoint returns nothing
+    bar_data = _get(f"/stocks/{symbol}/bars/latest?timeframe=1Min&feed=iex", base=ALPACA_DATA)
+    if bar_data and "bar" in bar_data:
+        return float(bar_data["bar"]["c"])
+    return None
 
 def get_bars(symbol: str, days: int = 30) -> list[float]:
     end   = datetime.now(timezone.utc)
@@ -134,6 +144,7 @@ def get_bars(symbol: str, days: int = 30) -> list[float]:
         f"&start={start.strftime('%Y-%m-%d')}"
         f"&end={end.strftime('%Y-%m-%d')}"
         f"&limit={days + 10}"
+        f"&feed=iex"     # required for paper-only Alpaca accounts
     )
     data = _get(url, base=ALPACA_DATA)
     return [b["c"] for b in data["bars"]] if data and "bars" in data else []
@@ -205,6 +216,7 @@ def get_ohlc_bars(symbol: str, days: int = 220) -> dict:
         f"&start={start.strftime('%Y-%m-%d')}"
         f"&end={end.strftime('%Y-%m-%d')}"
         f"&limit={days + 20}"
+        f"&feed=iex"     # required for paper-only accounts
     )
     data = _get(url, base=ALPACA_DATA)
     if not data or "bars" not in data:
@@ -574,9 +586,19 @@ def get_conservative_dashboard() -> dict:
         "unrealized_plpc": float(p.get("unrealized_plpc", 0)),
     } for p in positions]
 
-    total_cost = conn.execute(
-        "SELECT COALESCE(SUM(amount),0) FROM trades WHERE side='conservative' AND action='buy'"
-    ).fetchone()[0]
+    # Fix #3: Net cost = total bought - total sold (prevents phantom negative G/L
+    # from old migration rows that had no side column and were double-counted)
+    buy_cost = conn.execute(
+        "SELECT COALESCE(SUM(amount), 0) FROM trades "
+        "WHERE side='conservative' AND action='buy'"
+    ).fetchone()[0] or 0.0
+
+    sell_proceeds = conn.execute(
+        "SELECT COALESCE(SUM(amount), 0) FROM trades "
+        "WHERE side='conservative' AND action='sell'"
+    ).fetchone()[0] or 0.0
+
+    total_cost = max(buy_cost - sell_proceeds, 0.0)  # net capital deployed
     rotations = conn.execute(
         "SELECT * FROM rotation_log ORDER BY id DESC LIMIT 10"
     ).fetchall()
