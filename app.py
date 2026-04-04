@@ -229,6 +229,51 @@ def api_save_settings():
 @app.route("/api/quote/<symbol>")
 def api_quote(symbol): return jsonify({"symbol":symbol,"price":cons.get_quote(symbol.upper())})
 
+@app.route("/api/debug")
+def api_debug():
+    """
+    Live diagnostics — visit http://localhost:5000/api/debug to see exactly
+    what Alpaca and NDAX are returning. Useful when SPY/RSI shows dashes.
+    """
+    import os
+    cfg = core.load_config()
+
+    # Test Alpaca data feed
+    spy_quote  = cons.get_quote("SPY")
+    spy_bars   = cons.get_bars("SPY", 5)
+    account    = cons.get_account()
+    positions  = cons.get_positions()
+
+    # Test NDAX
+    ndax_bal   = crypto.get_crypto_balances()
+    btc_ticker = crypto.get_crypto_ticker("BTC/CAD")
+
+    return jsonify({
+        "alpaca": {
+            "mode":            cfg.get("mode"),
+            "paper_key_set":   bool(os.getenv("ALPACA_PAPER_KEY")),
+            "live_key_set":    bool(os.getenv("ALPACA_LIVE_KEY")),
+            "account_ok":      bool(account and account.get("id")),
+            "account_status":  account.get("status") if account else "no response",
+            "buying_power":    account.get("buying_power") if account else None,
+            "spy_quote":       spy_quote,
+            "spy_bars_count":  len(spy_bars),
+            "spy_bars_sample": spy_bars[-3:] if spy_bars else [],
+            "positions_count": len(positions),
+        },
+        "ndax": {
+            "key_set":         bool(os.getenv("NDAX_API_KEY")),
+            "ccxt_available":  crypto._ccxt_available(),
+            "balances":        ndax_bal,
+            "btc_ticker":      btc_ticker,
+        },
+        "config": {
+            "mode":            cfg.get("mode"),
+            "ma200_filter":    cfg.get("ma200_filter"),
+            "crash_threshold": cfg.get("crash_threshold"),
+        },
+    })
+
 @app.route("/healthz")
 def healthz(): return jsonify({"ok":True,"time":core.utc_now()})
 
