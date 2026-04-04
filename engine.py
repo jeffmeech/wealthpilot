@@ -147,7 +147,7 @@ def _base() -> str:
     return ALPACA_LIVE_BASE if load_config().get("mode") == "live" else ALPACA_PAPER_BASE
 
 def _headers() -> dict:
-    return {"APCA-API-KEY-ID": os.getenv("ALPACA_PAPER_KEY",""), "APCA-API-KEY-SECRET": os.getenv("ALPACA_PAPER_SECRET","")}
+    return {"APCA-API-KEY-ID": os.getenv("ALPACA_PAPER_KEY",""), "APCA-API-SECRET-KEY": os.getenv("ALPACA_PAPER_SECRET","")}
 
 def _get(path: str, base: str | None = None) -> Any:
     import urllib.request
