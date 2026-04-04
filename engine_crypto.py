@@ -88,12 +88,42 @@ def _safe_buy(ex, symbol: str, qty: float) -> dict:
 
 # ── Market data ────────────────────────────────────────────────────────────────
 def get_crypto_balances() -> dict:
+    """
+    Fetch NDAX balances. Handles all ccxt balance return structures.
+    NDAX can return balances under 'total', 'free', or raw 'info' array.
+    """
     ex = _get_exchange()
     if not ex:
         return {"error": "Exchange not connected", "balances": {}}
     try:
         bal = ex.fetch_balance()
-        return {"balances": {k: v for k, v in bal["total"].items() if v and v > 0}}
+
+        # ccxt standard: prefer 'total' (free + used), fall back to 'free'
+        total = bal.get("total") or {}
+        free  = bal.get("free")  or {}
+
+        combined = {}
+        for src in (free, total):  # total wins on overlap
+            for k, v in src.items():
+                try:
+                    fv = float(v)
+                    if fv > 0:
+                        combined[k] = fv
+                except (TypeError, ValueError):
+                    pass
+
+        # NDAX raw 'info' fallback if standard keys empty
+        if not combined:
+            info = bal.get("info") or []
+            if isinstance(info, list):
+                for entry in info:
+                    sym = entry.get("ProductSymbol") or entry.get("symbol", "")
+                    amt = float(entry.get("Amount") or entry.get("amount") or 0)
+                    if sym and amt > 0:
+                        combined[sym] = amt
+
+        log({"event": "ndax_balances_fetched", "holdings": len(combined)})
+        return {"balances": combined}
     except Exception as e:
         log({"event": "ndax_balance_error", "error": str(e)})
         return {"error": str(e), "balances": {}}
