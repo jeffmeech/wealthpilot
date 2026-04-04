@@ -213,10 +213,20 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <div style="font-size:22px" id="sent-icon">📊</div>
       <div><div class="sent-label" id="sent-label">Loading…</div><div class="sent-detail" id="sent-detail">Fetching market data</div></div>
     </div>
-    <div style="text-align:right;flex-shrink:0">
-      <div style="font-size:9px;color:var(--sub)">SPY Today</div>
-      <div style="font-family:var(--font-h);font-size:16px;font-weight:700" id="sent-spy">—</div>
-      <div style="font-size:9px;color:var(--sub)">RSI: <span id="sent-rsi">—</span></div>
+    <div style="display:flex;gap:20px;text-align:right;flex-shrink:0;align-items:center">
+      <div>
+        <div style="font-size:9px;color:var(--sub)">SPY Today</div>
+        <div style="font-family:var(--font-h);font-size:16px;font-weight:700" id="sent-spy">—</div>
+      </div>
+      <div>
+        <div style="font-size:9px;color:var(--sub)">RSI (14)</div>
+        <div style="font-family:var(--font-h);font-size:16px;font-weight:700" id="sent-rsi">—</div>
+      </div>
+      <div>
+        <div style="font-size:9px;color:var(--sub)">200-Day MA</div>
+        <div style="font-family:var(--font-h);font-size:16px;font-weight:700" id="sent-ma200">—</div>
+        <div style="font-size:9px;margin-top:1px" id="sent-regime">—</div>
+      </div>
     </div>
   </div>
 
@@ -465,6 +475,33 @@ ALERT_EMAIL_TO=you@gmail.com</pre></div>
     <div><div class="page-title">Settings</div><div class="page-sub">All thresholds, intervals and modes</div></div>
     <div class="topbar-right"><button class="btn btn-green" onclick="saveSettings()">Save</button></div>
   </div>
+
+  <!-- Connection status — shown at top so issues are immediately visible -->
+  <div class="card" style="padding:18px">
+    <div class="sec-title" style="margin-bottom:12px">Connection Status</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px" id="conn-status-grid">
+      <div style="padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r)">
+        <div style="font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.08em">Alpaca API</div>
+        <div style="font-size:13px;font-weight:700;margin-top:4px" id="cs-alpaca">—</div>
+      </div>
+      <div style="padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r)">
+        <div style="font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.08em">NDAX / ccxt</div>
+        <div style="font-size:13px;font-weight:700;margin-top:4px" id="cs-ndax">—</div>
+      </div>
+      <div style="padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r)">
+        <div style="font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.08em">Email</div>
+        <div style="font-size:13px;font-weight:700;margin-top:4px" id="cs-email">—</div>
+      </div>
+    </div>
+    <div style="font-size:10.5px;color:var(--sub)">
+      If any connection shows ✗, visit
+      <a href="/api/debug" target="_blank" style="color:var(--green);text-decoration:none">
+        /api/debug
+      </a>
+      in your browser for a full diagnostic — it shows exactly what each API is returning.
+    </div>
+  </div>
+
   <div class="two-panel">
     <div>
       <div class="sec-head"><div class="sec-title">Conservative Engine</div></div>
@@ -606,10 +643,37 @@ function renderAll(){
   document.getElementById('sent-icon').textContent=icons[s.signal]||'📊';
   document.getElementById('sent-label').textContent=lbls[s.signal]||'Hold';
   document.getElementById('sent-detail').textContent=s.detail||'—';
+
   const spyEl=document.getElementById('sent-spy');
-  spyEl.textContent=s.spy_change!=null?fmtP(s.spy_change*100):'—';
-  if(s.spy_change!=null)spyEl.className=clr(s.spy_change);
-  document.getElementById('sent-rsi').textContent=s.rsi!=null?s.rsi.toFixed(0):'—';
+  if(s.spy_change!=null){
+    spyEl.textContent=fmtP(s.spy_change*100);
+    spyEl.style.color=s.spy_change>=0?'var(--green)':'var(--red)';
+  } else {
+    spyEl.textContent='—';
+    spyEl.style.color='var(--sub)';
+  }
+
+  const rsiEl=document.getElementById('sent-rsi');
+  if(s.rsi!=null){
+    rsiEl.textContent=s.rsi.toFixed(0);
+    rsiEl.style.color=s.rsi<32?'var(--green)':s.rsi>72?'var(--red)':'var(--text)';
+  } else {
+    rsiEl.textContent='—';
+    rsiEl.style.color='var(--sub)';
+  }
+
+  const ma200El=document.getElementById('sent-ma200');
+  const regimeEl=document.getElementById('sent-regime');
+  if(s.ma200!=null){
+    ma200El.textContent=fmt(s.ma200);
+    ma200El.style.color=s.above_ma200?'var(--green)':'var(--red)';
+    regimeEl.textContent=s.above_ma200?'▲ Bull trend':'▼ Bear — defensive';
+    regimeEl.style.color=s.above_ma200?'var(--green)':'var(--red)';
+  } else {
+    ma200El.textContent='—';
+    regimeEl.textContent='loading…';
+    ma200El.style.color='var(--sub)';
+  }
 
   // Metrics
   document.getElementById('m-total').textContent=fmt(total);
@@ -663,6 +727,26 @@ function renderAll(){
   if(ndaxEl){ndaxEl.innerHTML=ndaxConn?'<span style="width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);display:inline-block;margin-right:4px"></span>NDAX Connected':'<span style="width:7px;height:7px;border-radius:50%;background:var(--sub);display:inline-block;margin-right:4px"></span>NDAX Not Connected'}
   const ndaxNote=document.getElementById('ndax-note');
   if(ndaxNote)ndaxNote.textContent=ndaxConn?'Live NDAX positions':'Add NDAX_API_KEY to .env — see Go Live tab';
+
+  // Settings connection status panel
+  const tick  = v => `<span style="color:var(--green)">✓ ${v}</span>`;
+  const cross = v => `<span style="color:var(--red)">✗ ${v}</span>`;
+  const warn  = v => `<span style="color:var(--amber)">⚠ ${v}</span>`;
+
+  const csAlpaca = document.getElementById('cs-alpaca');
+  if(csAlpaca) csAlpaca.innerHTML = c.alpaca_connected
+    ? tick(D.config?.mode==='live' ? 'Live' : 'Paper')
+    : cross('No keys in .env');
+
+  const csNdax = document.getElementById('cs-ndax');
+  if(csNdax) csNdax.innerHTML = cr.ccxt_available
+    ? (ndaxConn ? tick('Connected') : warn('ccxt OK · keys missing'))
+    : cross('pip install ccxt');
+
+  const csEmail = document.getElementById('cs-email');
+  if(csEmail) csEmail.innerHTML = D.email_configured
+    ? tick('Gmail configured')
+    : warn('Not configured');
 }
 
 function updateDeploySplit(){
@@ -702,7 +786,7 @@ function renderOpportunities(){
     const isTop=i===0; const maxYield=opps[0].yield_pct;
     return`<div class="opp-row">
       <div style="display:flex;align-items:center;gap:10px">
-        ${isTop?'<span style="font-size:10px;background:rgba(0,230,118,.15);color:var(--green);border:1px solid rgba(0,230,118,.3);padding:1px 7px;border-radius:3px;font-weight:700">BEST</span>':'<span style="font-size:11px;color:var(--sub);width:32px;text-align:center">#${i+1}</span>'}
+        ${isTop?'<span style="font-size:10px;background:rgba(0,230,118,.15);color:var(--green);border:1px solid rgba(0,230,118,.3);padding:1px 7px;border-radius:3px;font-weight:700">BEST</span>':`<span style="font-size:11px;color:var(--sub);width:32px;text-align:center">#${i+1}</span>`}
         <div><div class="opp-sym">${o.symbol}</div><div style="font-size:10px;color:var(--sub)">${o.desc.split('—')[0].trim()}</div></div>
       </div>
       <div class="opp-score">
@@ -723,16 +807,31 @@ function renderCrypto(){
   const pos=cr.positions||[];
   document.getElementById('crypto-positions').innerHTML=pos.length?pos.map(p=>{
     const at_profit=(p.gain_pct/100)>=(cr.profit_target/100||0.2);
-    const at_stop  =(p.gain_pct/100)<=(cr.stop_loss/100||-.15);
-    const status=at_profit?`<span class="badge badge-profit">Near target</span>`:
-                 at_stop  ?`<span class="badge badge-stop">Near stop</span>`:
-                 `<span class="badge badge-auto">Watching</span>`;
+    const at_stop  = p.dynamic_stop_price ? (p.price <= p.dynamic_stop_price) : (p.gain_pct/100)<=(cr.stop_loss/100||-.15);
+    const near_target = !at_stop && (p.gain_pct/100)>=(cr.profit_target/100||0.2)*0.80; // within 80% of target
+
+    // Status badge
+    let status;
+    if(p.principal_protected) status=`<span class="badge badge-profit">🏦 House $</span>`;
+    else if(at_profit)        status=`<span class="badge badge-profit">🎯 Take profit</span>`;
+    else if(at_stop)          status=`<span class="badge badge-stop">⛔ Stop hit</span>`;
+    else if(near_target)      status=`<span class="badge badge-rotation">Near target</span>`;
+    else                      status=`<span class="badge badge-auto">Watching</span>`;
+
+    // ATR stop display
+    const stopDisplay = p.dynamic_stop_price
+      ? `<span style="color:var(--red);font-size:10px">ATR stop: ${fmt(p.dynamic_stop_price)}</span>`
+      : `<span style="color:var(--sub);font-size:10px">stop: —</span>`;
+
     return`<tr>
-      <td><strong>${p.symbol}</strong></td>
+      <td>
+        <strong>${p.symbol}</strong>
+        <div style="margin-top:2px">${stopDisplay}</div>
+      </td>
       <td>${fmtQ(p.qty)}</td>
       <td>${fmt(p.price)}</td>
       <td>${fmt(p.market_value)}</td>
-      <td class="${clr(p.gain)}">${fmt(p.gain)} (${fmtP(p.gain_pct)})</td>
+      <td class="${clr(p.gain)}">${fmt(p.gain)}<br/><span style="font-size:10px">(${fmtP(p.gain_pct)})</span></td>
       <td class="${clr(p.change_24h)}">${fmtP(p.change_24h)}</td>
       <td>${status}</td>
     </tr>`}).join(''):'<tr><td colspan="7" style="text-align:center;padding:22px;color:var(--sub)">No positions or NDAX not connected</td></tr>';
@@ -744,6 +843,26 @@ function renderCrypto(){
     <td><span class="badge badge-${t.action}">${t.action}</span></td>
     <td>${fmt(t.amount)}</td>
   </tr>`).join(''):'<tr><td colspan="4" style="text-align:center;padding:22px;color:var(--sub)">No trades yet</td></tr>';
+
+  // Principal protection log if any
+  const plog=cr.protection_log||[];
+  if(plog.length){
+    const existing=document.getElementById('protection-log-section');
+    const html=`<div id="protection-log-section" style="margin-top:16px">
+      <div class="sec-head" style="margin-bottom:8px"><div class="sec-title" style="color:var(--green)">🏦 Principal Protection Events</div></div>
+      <div class="card table-wrap"><table>
+        <thead><tr><th>Date</th><th>Symbol</th><th>Extracted</th><th>Note</th></tr></thead>
+        <tbody>${plog.map(p=>`<tr>
+          <td style="color:var(--sub)">${fmtD(p.date)}</td>
+          <td><strong>${p.symbol}</strong></td>
+          <td style="color:var(--green)">${fmt(p.principal_extracted)}</td>
+          <td style="color:var(--sub);font-size:10px">${p.note||'—'}</td>
+        </tr>`).join('')}</tbody>
+      </table></div></div>`;
+    if(!existing){
+      document.getElementById('section-crypto').insertAdjacentHTML('beforeend',html);
+    }
+  }
 }
 
 function renderFlow(){
